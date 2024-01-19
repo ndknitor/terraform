@@ -25,7 +25,7 @@ provider "digitalocean" {
 }
 resource "digitalocean_droplet" "main" {
     count              = 2
-    name               = "digitalocean-${count.index + 1}"
+    name               = "do-${count.index + 1}"
     image              = "debian-11-x64" 
     size               = "s-1vcpu-1gb"   
     region             = "sgp1"        
@@ -43,7 +43,7 @@ resource "digitalocean_droplet" "main" {
     }
     provisioner "local-exec" {
         command = <<EOT
-            echo 'Host digitalocean-${count.index + 1}' >> ${var.config_path}
+            echo 'Host do-${count.index + 1}' >> ${var.config_path}
             echo '   Hostname ${self.ipv4_address}' >> ${var.config_path}
             echo '   User root' >> ${var.config_path}
             echo '   Port 22' >> ${var.config_path}
