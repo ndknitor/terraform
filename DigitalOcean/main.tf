@@ -16,13 +16,12 @@ variable "config_path" {
 variable "private_key_path" {
   default = "/home/kn/.ssh/id_rsa"
 }
-
+data "digitalocean_ssh_key" "existing_key" {
+    name = "Main key"
+}
 
 provider "digitalocean" {
     token = var.token
-}
-data "digitalocean_ssh_key" "existing_key" {
-    name = "Main key"
 }
 resource "digitalocean_droplet" "main" {
     count              = 2
@@ -53,4 +52,5 @@ resource "digitalocean_droplet" "main" {
   }
 }
 
-
+// terraform init
+// terraform apply -var-file=token.tfvars
