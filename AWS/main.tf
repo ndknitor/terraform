@@ -20,7 +20,7 @@ variable "region" {
 }
 
 variable "config_path" {
-  default = "/home/kn/Project/Terraform/AWS/config"
+  default = "/home/kn/Project/terraform/AWS/config"
 }
 
 variable "private_key_path" {
@@ -36,7 +36,7 @@ provider "aws" {
 resource "aws_instance" "teraws" {
   count           = 1
   ami             = "ami-0588c11374527e516"
-  security_groups = ["public-ssh", "outbound-trafic"]
+  security_groups = ["inbound-ssh", "outbound-trafic"]
   instance_type   = "t2.micro"
   key_name        = "main"
   tags = {
@@ -45,18 +45,18 @@ resource "aws_instance" "teraws" {
 
   provisioner "remote-exec" {
     inline = [
-      "sudo apt update -y",
-      "sudo apt upgrade -y",
-      "sudo apt install -y net-tools",
       "echo 'export PATH=$PATH:/sbin' >> .bashrc",
+      "sudo apt update -y",
+      "sudo unattended-upgrade --no-minimal-upgrade-steps",
+      "sudo apt install -y net-tools",
 
       #Install Docker
       "sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release",
       "curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg",
-      "echo \"deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
-      "sudo apt-get update",
-      "sudo apt-get install -y docker-ce"
-
+      "echo deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
+      "sudo apt-get update -y",
+      "sudo apt-get install -y docker-ce",
+      "sudo usermod -aG docker $USER"
     ]
     connection {
       type        = "ssh"
@@ -77,8 +77,8 @@ resource "aws_instance" "teraws" {
   }
 }
 
-resource "aws_security_group" "public_ssh" {
-  name        = "public-ssh"
+resource "aws_security_group" "inbound_ssh" {
+  name        = "inbound-ssh"
   description = "Allow inbound SSH traffic"
   ingress {
     from_port   = 22
@@ -100,7 +100,7 @@ resource "aws_security_group" "outbound_traffic" {
 }
 
 # resource "aws_security_group" "web_server" {
-#   name        = "public-ssh"
+#   name        = "inbound-web-server"
 #   description = "Allow inbound Http and Https traffic"
 #   ingress {
 #     from_port   = 80
