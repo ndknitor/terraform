@@ -37,7 +37,7 @@ provider "aws" {
   secret_key = var.aws_secret_key
 }
 
-resource "aws_instance" "teraws" {
+resource "aws_instance" "main_cluster" {
   count = 2
   ami   = "ami-0588c11374527e516"
   security_groups = ["inbound-ssh", "outbound-trafic",
@@ -108,7 +108,7 @@ resource "aws_security_group" "outbound_traffic" {
   }
 }
 
-# resource "aws_security_group" "web_server" {
+# resource "aws_security_group" "inbound_web_server" {
 #   name        = "inbound-web-server"
 #   description = "Allow inbound Http and Https traffic"
 #   ingress {
