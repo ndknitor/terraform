@@ -37,12 +37,12 @@ provider "aws" {
   secret_key = var.aws_secret_key
 }
 
-resource "aws_instance" "main_cluster" {
+resource "aws_instance" "main_aws" {
   count = 2
   ami   = "ami-0588c11374527e516"
   security_groups = ["inbound-ssh", "outbound-trafic",
-    "cloudflare_inbound_https"
-  ]
+    # "cloudflare-inbound-https"
+]
   instance_type = "t2.micro"
   key_name      = "main"
   tags = {
@@ -53,16 +53,16 @@ resource "aws_instance" "main_cluster" {
     inline = [
       "echo 'export PATH=$PATH:/sbin' >> .bashrc",
       "sudo apt update -y",
-      # "sudo unattended-upgrade --no-minimal-upgrade-steps",
-      # "sudo apt install -y net-tools",
+      "sudo unattended-upgrade --no-minimal-upgrade-steps",
+      "sudo apt install -y net-tools",
 
-      # # Install Docker
-      # "sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release",
-      # "curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg",
-      # "echo deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
-      # "sudo apt-get update -y",
-      # "sudo apt-get install -y docker-ce",
-      # "sudo usermod -aG docker $USER"
+      # Install Docker
+      "sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release",
+      "curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg",
+      "echo deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
+      "sudo apt-get update -y",
+      "sudo apt-get install -y docker-ce",
+      "sudo usermod -aG docker $USER"
     ]
     connection {
       type        = "ssh"
