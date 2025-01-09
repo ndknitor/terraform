@@ -1,0 +1,6 @@
+all:
+  hosts:
+%{ for content_key, content_value in content }
+    ${content_key}:
+      ansible_host: ${content_value}
+%{~ endfor ~}
