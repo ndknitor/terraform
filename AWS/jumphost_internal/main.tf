@@ -44,9 +44,14 @@ variable "public_subnet" {
   default = "10.0.1.0/24"
 }
 
-variable "private_subnet" {
-  default = ["10.0.2.0/24", "10.0.3.0/24", "10.0.4.0/24"]
+variable "private_subnet_nat" {
+  default = "10.0.2.0/24"
 }
+
+variable "private_subnet" {
+  default = ["10.0.3.0/24", "10.0.4.0/24", "10.0.5.0/24"]
+}
+
 
 variable "azs" {
  type        = list(string)
@@ -85,11 +90,14 @@ resource "aws_vpc" "main" {
 #   }
 }
 
-# Create an Internet Gateway
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.main.id
+# Create a Private Subnet
+resource "aws_subnet" "private" {
+  count = length(var.private_subnet)
+  vpc_id     = aws_vpc.main.id
+  cidr_block = element(var.private_subnet, count.index)
+  availability_zone = element(var.azs, count.index)
   tags = {
-    Name = "${var.prefix_name}-igw"
+    Name = "${var.prefix_name}-private-subnet"
   }
 }
 
@@ -103,13 +111,20 @@ resource "aws_subnet" "public" {
   }
 }
 
-# Create a Private Subnet
-resource "aws_subnet" "private" {
-  count = length(var.private_subnet)
+# Create a Private NAT Subnet
+resource "aws_subnet" "private_nat" {
   vpc_id     = aws_vpc.main.id
-  cidr_block = element(var.private_subnet, count.index)
+  cidr_block = var.private_subnet_nat
   tags = {
-    Name = "${var.prefix_name}-private-subnet"
+    Name = "${var.prefix_name}-private-subnet-nat"
+  }
+}
+
+# Create an Internet Gateway
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main.id
+  tags = {
+    Name = "${var.prefix_name}-igw"
   }
 }
 
@@ -151,8 +166,7 @@ resource "aws_route_table" "private_route_table" {
 }
 
 resource "aws_route_table_association" "private_route_table_association" {
-  count = length(var.private_subnet)
-  subnet_id      = element(aws_subnet.private[*].id, count.index) 
+  subnet_id      = aws_subnet.private_nat.id
   route_table_id = aws_route_table.private_route_table.id
 }
 
@@ -206,7 +220,7 @@ resource "aws_instance" "private_ec2" {
   ami           = var.ami
   instance_type = var.instance_type
   key_name = var.key_name
-  subnet_id     = element(aws_subnet.private[*].id, 0) 
+  subnet_id     = aws_subnet.private_nat.id
   security_groups = [aws_security_group.ec2_sg.id]
 
   tags = {
@@ -215,7 +229,7 @@ resource "aws_instance" "private_ec2" {
 
    provisioner "local-exec" {
     command = <<EOT
-echo "Host ${aws_instance.public_ec2.tags["Name"]}
+echo "Host ${var.prefix_name}-private-ec2
     Hostname ${self.private_ip}
     User ${var.username}
     ProxyJump ${aws_instance.public_ec2.tags["Name"]}
@@ -247,6 +261,17 @@ resource "aws_security_group" "rds_sg" {
   }
 }
 
+# RDS Subnet Group
+resource "aws_db_subnet_group" "rds_subnet_group" {
+  name       = "${var.prefix_name}-rds-subnet-group"
+  subnet_ids = tolist(aws_subnet.private[*].id)
+
+  
+  tags = {
+    Name = "${var.prefix_name}-rds-subnet-group"
+  }
+}
+
 # RDS Instance with Private IP
 resource "aws_db_instance" "rds" {
   identifier = "${var.prefix_name}-rds"
@@ -263,16 +288,5 @@ resource "aws_db_instance" "rds" {
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
   tags = {
     Name = "${var.prefix_name}-rds"
-  }
-}
-
-# RDS Subnet Group
-resource "aws_db_subnet_group" "rds_subnet_group" {
-  name       = "${var.prefix_name}-rds-subnet-group"
-  subnet_ids = tolist(aws_subnet.private[*].id)
-
-  
-  tags = {
-    Name = "${var.prefix_name}-rds-subnet-group"
   }
 }
